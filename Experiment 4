@@ -1,149 +1,185 @@
 #include<stdio.h>
-#include<stdlib.h>
-#define MAX 100
+#include<math.h>
+#include<string.h>
+#include<ctype.h>
 
-int stack1[MAX], top1 = -1;
-int stack2[MAX], top2 = -1;
+int operand[100];
+char operator[100];
+int top1 = -1, top2 = -1;
 
-int isEmpty1(){
-    return top1 == -1;
-}
-
-int isEmpty2(){
-    return top2 == -1;
-}
-
-int isFull1(){
-    return top1 == MAX-1;
-}
-
-int isFull2(){
-    return top2 == MAX-1;
-}
-
-void PUSH(int s, int value){
-    if(s == 1){
-        if(isFull1())
-            printf("Overflow\n");
-        else{
-            stack1[++top1] = value;
-        }
+void doProcess(){
+    int x = operand[top1--];
+    int y = operand[top1--];
+    char op = operator[top2--];
+    int z;
+    switch(op){
+        case '+':
+            z = y + x;
+            break;
+        case '-':
+            z = y - x;
+            break;
+        case '*':
+            z = y * x;
+            break;
+        case '/':
+            z = y / x;
+            break;
+        case '^':
+            z = (int)round(pow(y, x));
+            break;
     }
-    else if(s == 2){
-        if(isFull2())
-            printf("Overflow\n");
-        else{
-            stack2[++top2] = value;
-        }
-    }
+    operand[++top1] = z;
 }
 
-void POP(int s){
-    if(s == 1){
-        if(isEmpty1()){
-            printf("Underflow\n");
-            return;
-        }
-        printf("%d\n", stack1[top1]);
-        top1--;
-    }
-    else if(s == 2){
-        if(isEmpty2()){
-            printf("Underflow\n");
-            return;
-        }
-        printf("%d\n", stack2[top2]);
-        top2--;
+int precedence(char op){
+    switch(op){
+        case '+':
+        case '-':
+            return 1;
+        case '*':
+        case '/':
+            return 2;
+        case '^':
+            return 3;
+        default:
+            return 0;
     }
 }
 
-void PEEK(int s){
-    if(s == 1){
-        if(isEmpty1()){
-            printf("Underflow\n");
-            return;
+int evalInfixExpression(char* exp){
+    for(int i=0; i<strlen(exp); i++){
+        char ch = exp[i];
+        if(isdigit(ch)){
+            int num = 0;
+            while(isdigit(exp[i])){
+                num = num * 10 + exp[i]-'0';
+                i++;
+            }
+            i--;
+            operand[++top1] = num;
         }
-        printf("%d\n", stack1[top1]);
-    }
-    else if(s == 2){
-        if(isEmpty2()){
-            printf("Underflow\n");
-            return;
+        else if(ch=='+' || ch=='-' || ch=='*' || ch=='/' || ch=='^'){
+            if(top2 == -1)
+                operator[++top2] = ch;
+            else{
+                while(top2 != -1 && precedence(ch) <= precedence(operator[top2])){
+                    doProcess();
+                }
+                operator[++top2] = ch;
+            }
         }
-        printf("%d\n", stack2[top2]);
+        else if(ch=='('){
+            operator[++top2] = ch;
+        }
+        else if(ch==')'){
+            while(operator[top2] != '('){
+                doProcess();
+            }
+            top2--;
+        }
     }
+    while(top2 != -1){
+        doProcess();
+    }
+    return operand[top1--];
 }
 
-void DISPLAY(int s){
-    if(s == 1){
-        if(isEmpty1()){
-            printf("Underflow\n");
-            return;
+int evalPostfixExpression(char* exp){
+    for(int i=0; i<strlen(exp); i++){
+        if(isdigit(exp[i])){
+            int num = 0;
+            while(isdigit(exp[i])){
+                num = num*10 + exp[i]-'0';
+                i++;
+            }
+            i--;
+            operand[++top1] = num;
         }
-        for(int i=top1; i>=0; i--){
-            printf("%d ", stack1[i]);
+        else if(exp[i]=='+' || exp[i]=='-' || exp[i]=='*' || exp[i]=='/' || exp[i]=='^'){
+            int x = operand[top1--];
+            int y = operand[top1--];
+            int z;
+            switch(exp[i]){
+                case '+':
+                    z = y + x;
+                    break;
+                case '-':
+                    z = y - x;
+                    break;
+                case '*':
+                    z = y * x;
+                    break;
+                case '/':
+                    z = y / x;
+                    break;
+                case '^':
+                    z = (int)round(pow(y, x));
+                    break;
+            }
+            operand[++top1] = z;
         }
-        printf("\n");
     }
-    else if(s == 2){
-        if(isEmpty2()){
-            printf("Underflow\n");
-            return;
+    return operand[top1--];
+}
+
+int evalPrefixExpression(char* exp){
+    for(int i=strlen(exp)-1; i>=0; i--){
+        if(isdigit(exp[i])){
+            int num = 0, p = 1;
+            while(isdigit(exp[i])){
+                num = num + (exp[i]-'0') * p;
+                p = p * 10;
+                i--;
+            }
+            i++;
+            operand[++top1] = num;
         }
-        for(int i=top2; i>=0; i--){
-            printf("%d ", stack2[i]);
+        else if(exp[i] == '+' || exp[i]=='-' || exp[i]=='*' || exp[i]=='/' || exp[i]=='^'){
+            int x = operand[top1--];
+            int y = operand[top1--];
+            int z;
+            switch(exp[i]){
+                case '+':
+                    z = x + y;
+                    break;
+                case '-':
+                    z = x - y;
+                    break;
+                case '*':
+                    z = x * y;
+                    break;
+                case '/':
+                    z = x / y;
+                    break;
+                case '^':
+                    z = (int)round(pow(x, y));
+                    break;
+            }
+            operand[++top1] = z;
         }
-        printf("\n");
     }
+    return operand[top1--];
 }
 
 int main(){
-    int choice, s, val;
-    
-    while(1){
-        printf("1. PUSH\n");
-        printf("2. POP\n");
-        printf("3. PEEK\n");
-        printf("4. DISPLAY\n");
-        printf("5. Exit\n");
-        printf("Enter Choice: ");
-        scanf("%d", &choice);
-        
-        switch(choice){
-            case 1:
-                printf("Enter Stack(1/2): ");
-                scanf("%d", &s);
-                printf("Enter Value: ");
-                scanf("%d", &val);
-                PUSH(s, val);
-                break;
-                
-            case 2:
-                printf("Enter Stack(1/2): ");
-                scanf("%d", &s);
-                POP(s);
-                break;
-                
-            case 3:
-                printf("Enter Stack(1/2): ");
-                scanf("%d", &s);
-                PEEK(s);
-                break;
-                
-            case 4:
-                printf("Enter Stack(1/2): ");
-                scanf("%d", &s);
-                DISPLAY(s);
-                break;
-                
-            case 5:
-                exit(0);
-                break;
-                
-            default:
-                printf("Invalid Choice\n");
-        }
-        printf("\n");
-    }
+    char expr[100];
+    printf("Enter Infix Expression: ");
+    fgets(expr, sizeof(expr), stdin);
+    expr[strcspn(expr, "\n")] = 0;
+    int result = evalInfixExpression(expr);
+    printf("Result of expression %s = %d\n", expr, result);
+
+    printf("Enter Postfix Expression: ");
+    fgets(expr, sizeof(expr), stdin);
+    expr[strcspn(expr, "\n")] = 0;
+    result = evalPostfixExpression(expr);
+    printf("Result of expression %s = %d\n", expr, result);
+
+    printf("Enter Prefix Expression: ");
+    fgets(expr, sizeof(expr), stdin);
+    expr[strcspn(expr, "\n")] = 0;
+    result = evalPrefixExpression(expr);
+    printf("Result of expression %s = %d\n", expr, result);
     return 0;
 }
